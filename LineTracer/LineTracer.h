@@ -33,7 +33,7 @@ extern "C" {
 #define ROTATION_DEGREES  (200)
 
 /* 90度回転時のモータ速度 */
-#define ROTATION_SPEED    (25)
+#define ROTATION_SPEED    (40)
 
 #include "pbio/port.h"  
 
