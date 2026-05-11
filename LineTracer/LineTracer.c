@@ -7,10 +7,11 @@
 
 /* ライントレーサの内部状態 */
 typedef enum {
-    STATE_LINE_TRACING, /* 通常ライントレース */
-    STATE_STOPPING,     /* 停止待機中 */
-    STATE_ROTATING,     /* 90度回転中 */
-    STATE_DONE          /* 回転完了・停止 */
+    STATE_INIT_ROTATING, /* 発進前90度回転中 */
+    STATE_LINE_TRACING,  /* 通常ライントレース */
+    STATE_STOPPING,      /* 停止待機中 */
+    STATE_ROTATING,      /* 90度回転中 */
+    STATE_DONE           /* 回転完了・停止 */
 } TracerState;
 
 /* 関数プロトタイプ宣言 */
@@ -34,9 +35,14 @@ void LineTracer_Configure(pbio_port_id_t left_motor_port, pbio_port_id_t right_m
     pup_motor_setup(fg_left_motor,  PUP_DIRECTION_COUNTERCLOCKWISE, true);
     pup_motor_setup(fg_right_motor, PUP_DIRECTION_CLOCKWISE, true);
 
-    fg_state               = STATE_LINE_TRACING;
+    fg_rotation_start      = 0;
+    fg_state               = STATE_INIT_ROTATING;
     fg_blue_detect_counter = 0;
     fg_stop_counter        = 0;
+
+    /* 発進前の初期90度回転を開始 */
+    pup_motor_set_power(fg_left_motor,   ROTATION_SPEED);
+    pup_motor_set_power(fg_right_motor, -ROTATION_SPEED);
 }
 
 /* ライントレースタスク(100msec周期で関数コールされる) */
@@ -45,6 +51,16 @@ void tracer_task(intptr_t unused) {
     int32_t         motor_count;
 
     switch (fg_state) {
+
+    case STATE_INIT_ROTATING:
+        motor_count = pup_motor_get_count(fg_left_motor) - fg_rotation_start;
+        if (motor_count >= ROTATION_DEGREES) {
+            pup_motor_set_power(fg_left_motor,  0);
+            pup_motor_set_power(fg_right_motor, 0);
+            printf("Initial rotation complete. Starting line trace.\n");
+            fg_state = STATE_LINE_TRACING;
+        }
+        break;
 
     case STATE_LINE_TRACING:
         rgb = pup_color_sensor_rgb(fg_color_sensor);
