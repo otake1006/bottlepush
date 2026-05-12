@@ -1,8 +1,18 @@
 #include "app.h"
 #include <stdio.h>
+#include <signal.h>
+#include <stdlib.h>
 #include "LineTracer.h"
 
+#include "spike/pup/colorsensor.h"
 #include "spike/pup/forcesensor.h"
+
+static void on_sigint(int sig) {
+  (void)sig;
+  (void)pup_color_sensor_get_device((pbio_port_id_t)'X');
+  ext_tsk();
+  exit(-1);
+}
 
 /* センサーポートの定義 */
 static const pbio_port_id_t
@@ -13,6 +23,8 @@ static const pbio_port_id_t
 
 /* メインタスク(起動時にのみ関数コールされる) */
 void main_task(intptr_t unused) {
+  (void)unused;
+  signal(SIGINT, on_sigint);
   printf("+---------------------------------+\n");
   printf("|   Press force sensor to start   |\n");
   printf("+---------------------------------+\n");

@@ -24,6 +24,7 @@ static TracerState   fg_state               = STATE_LINE_TRACING;
 static int32_t       fg_rotation_start      = 0;
 static int32_t       fg_gray_detect_counter = 0;
 static int32_t       fg_stop_counter        = 0;
+static int32_t       fg_log_counter         = 0;
 
 void LineTracer_Configure(pbio_port_id_t left_motor_port, pbio_port_id_t right_motor_port, pbio_port_id_t color_sensor_port)
 {
@@ -38,6 +39,7 @@ void LineTracer_Configure(pbio_port_id_t left_motor_port, pbio_port_id_t right_m
     fg_state               = STATE_LINE_TRACING;
     fg_gray_detect_counter = 0;
     fg_stop_counter        = 0;
+    fg_log_counter         = 0;
 }
 
 /* ライントレースタスク(100msec周期で関数コールされる) */
@@ -48,7 +50,15 @@ void tracer_task(intptr_t unused) {
     switch (fg_state) {
 
     case STATE_LINE_TRACING:
-        hsv = pup_color_sensor_color(fg_color_sensor, true);
+        hsv = pup_color_sensor_hsv(fg_color_sensor, true);
+        fg_log_counter++;
+        if (fg_log_counter >= 1) {  /* 10サイクル=1秒ごとにHSV値を出力 */
+            printf("HSV: h=%d s=%d v=%d (gray_s<=%d v=%d-%d cnt=%d)\n",
+                   hsv.h, hsv.s, hsv.v,
+                   GRAY_S_MAX, GRAY_V_MIN, GRAY_V_MAX,
+                   fg_gray_detect_counter);
+            fg_log_counter = 0;
+        }
         if (hsv.s <= GRAY_S_MAX && hsv.v >= GRAY_V_MIN && hsv.v <= GRAY_V_MAX) {
             fg_gray_detect_counter++;
             if (fg_gray_detect_counter >= GRAY_DETECT_COUNT) {

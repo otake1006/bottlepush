@@ -5,14 +5,14 @@ extern "C" {
 /* 下記の項目は各ロボットに合わせて変えること */
 
 /* カラーセンサの輝度設定 */
-#define WHITE_BRIGHTNESS  (40)
-#define BLACK_BRIGHTNESS  (10)
+#define WHITE_BRIGHTNESS  (90)
+#define BLACK_BRIGHTNESS  (5)
 
 /* ステアリング操舵量の係数 */
-#define STEERING_COEF     (1.5F)
+#define STEERING_COEF     (0.8F)
 
 /* 走行基準スピード */
-#define BASE_SPEED        (30)
+#define BASE_SPEED        (40)
 
 /* ライントレースエッジ切り替え */
 #define LEFT_EDGE         (1)
@@ -26,14 +26,14 @@ extern "C" {
 
 /* グレー判定のHSV閾値 */
 #define GRAY_S_MAX        (30)   /* 彩度上限: グレーは低彩度 */
-#define GRAY_V_MIN        (20)   /* 明度下限: 黒を除外 */
+#define GRAY_V_MIN        (60)   /* 明度下限: 黒を除外 */
 #define GRAY_V_MAX        (80)   /* 明度上限: 白を除外 */
 
 /* 90度回転に必要なモータ角度[度] ロボットのホイールベースと車輪径に合わせて調整 */
 #define ROTATION_DEGREES  (200)
 
 /* 90度回転時のモータ速度 */
-#define ROTATION_SPEED    (40)
+#define ROTATION_SPEED    (60)
 
 #include "pbio/port.h"  
 
