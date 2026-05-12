@@ -18,16 +18,16 @@ extern "C" {
 #define LEFT_EDGE         (1)
 #define RIGHT_EDGE        (1)
 
-/* 青色検出の連続判定回数(1回=100ms) 誤検知防止のデバウンス */
-#define BLUE_DETECT_COUNT (3)
+/* グレー検出の連続判定回数(1回=100ms) 誤検知防止のデバウンス */
+#define GRAY_DETECT_COUNT (3)
 
-/* 青色検出後の停止待機サイクル数(1サイクル=100ms) */
+/* グレー検出後の停止待機サイクル数(1サイクル=100ms) */
 #define STOP_WAIT_COUNT   (3)
 
-/* 青色判定のRGB閾値 (各チャネル10ビット: 0-1023) */
-#define BLUE_R_MAX        (300)
-#define BLUE_G_MAX        (300)
-#define BLUE_B_MIN        (400)
+/* グレー判定のHSV閾値 */
+#define GRAY_S_MAX        (30)   /* 彩度上限: グレーは低彩度 */
+#define GRAY_V_MIN        (20)   /* 明度下限: 黒を除外 */
+#define GRAY_V_MAX        (80)   /* 明度上限: 白を除外 */
 
 /* 90度回転に必要なモータ角度[度] ロボットのホイールベースと車輪径に合わせて調整 */
 #define ROTATION_DEGREES  (200)

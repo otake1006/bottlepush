@@ -7,7 +7,6 @@
 
 /* ライントレーサの内部状態 */
 typedef enum {
-    STATE_INIT_ROTATING, /* 発進前90度回転中 */
     STATE_LINE_TRACING,  /* 通常ライントレース */
     STATE_STOPPING,      /* 停止待機中 */
     STATE_ROTATING,      /* 90度回転中 */
@@ -23,7 +22,7 @@ static pup_motor_t  *fg_right_motor;
 static pup_device_t *fg_color_sensor;
 static TracerState   fg_state               = STATE_LINE_TRACING;
 static int32_t       fg_rotation_start      = 0;
-static int32_t       fg_blue_detect_counter = 0;
+static int32_t       fg_gray_detect_counter = 0;
 static int32_t       fg_stop_counter        = 0;
 
 void LineTracer_Configure(pbio_port_id_t left_motor_port, pbio_port_id_t right_motor_port, pbio_port_id_t color_sensor_port)
@@ -36,47 +35,33 @@ void LineTracer_Configure(pbio_port_id_t left_motor_port, pbio_port_id_t right_m
     pup_motor_setup(fg_right_motor, PUP_DIRECTION_CLOCKWISE, true);
 
     fg_rotation_start      = 0;
-    fg_state               = STATE_INIT_ROTATING;
-    fg_blue_detect_counter = 0;
+    fg_state               = STATE_LINE_TRACING;
+    fg_gray_detect_counter = 0;
     fg_stop_counter        = 0;
-
-    /* 発進前の初期90度回転を開始 */
-    pup_motor_set_power(fg_left_motor,   ROTATION_SPEED);
-    pup_motor_set_power(fg_right_motor, -ROTATION_SPEED);
 }
 
 /* ライントレースタスク(100msec周期で関数コールされる) */
 void tracer_task(intptr_t unused) {
-    pup_color_rgb_t rgb;
+    pup_color_hsv_t hsv;
     int32_t         motor_count;
 
     switch (fg_state) {
 
-    case STATE_INIT_ROTATING:
-        motor_count = pup_motor_get_count(fg_left_motor) - fg_rotation_start;
-        if (motor_count >= ROTATION_DEGREES) {
-            pup_motor_set_power(fg_left_motor,  0);
-            pup_motor_set_power(fg_right_motor, 0);
-            printf("Initial rotation complete. Starting line trace.\n");
-            fg_state = STATE_LINE_TRACING;
-        }
-        break;
-
     case STATE_LINE_TRACING:
-        rgb = pup_color_sensor_rgb(fg_color_sensor);
-        if (rgb.r <= BLUE_R_MAX && rgb.g <= BLUE_G_MAX && rgb.b >= BLUE_B_MIN) {
-            fg_blue_detect_counter++;
-            if (fg_blue_detect_counter >= BLUE_DETECT_COUNT) {
-                /* 青色をBLUE_DETECT_COUNT回連続検出 → まず停止 */
-                printf("Blue detected (r=%d g=%d b=%d)! Stopping.\n",
-                       rgb.r, rgb.g, rgb.b);
+        hsv = pup_color_sensor_color(fg_color_sensor, true);
+        if (hsv.s <= GRAY_S_MAX && hsv.v >= GRAY_V_MIN && hsv.v <= GRAY_V_MAX) {
+            fg_gray_detect_counter++;
+            if (fg_gray_detect_counter >= GRAY_DETECT_COUNT) {
+                /* グレーをGRAY_DETECT_COUNT回連続検出 → まず停止 */
+                printf("Gray detected (h=%d s=%d v=%d)! Stopping.\n",
+                       hsv.h, hsv.s, hsv.v);
                 pup_motor_set_power(fg_left_motor,  0);
                 pup_motor_set_power(fg_right_motor, 0);
                 fg_stop_counter = 0;
                 fg_state = STATE_STOPPING;
             }
         } else {
-            fg_blue_detect_counter = 0;
+            fg_gray_detect_counter = 0;
             motor_drive_control(steering_amount_calculation());
         }
         break;
@@ -85,7 +70,7 @@ void tracer_task(intptr_t unused) {
         fg_stop_counter++;
         if (fg_stop_counter >= STOP_WAIT_COUNT) {
             /* 停止完了 → その場で90度回転開始 */
-            printf("Starting 90-degree rotation.\n");
+            printf("Starting 90-degree rotation after gray detection.\n");
             fg_rotation_start = pup_motor_get_count(fg_left_motor);
             pup_motor_set_power(fg_left_motor,   ROTATION_SPEED);
             pup_motor_set_power(fg_right_motor, -ROTATION_SPEED);
